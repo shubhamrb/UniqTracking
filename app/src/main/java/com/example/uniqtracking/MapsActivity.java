@@ -255,6 +255,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             //Move camera to this position
 
+
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude,longitude),15.0f));
 
             //Draw animatin rotate marker
