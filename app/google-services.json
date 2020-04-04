@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "115643819560",
+    "firebase_url": "https://uniqtracking.firebaseio.com",
+    "project_id": "uniqtracking",
+    "storage_bucket": "uniqtracking.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:115643819560:android:e6dd1ddefa0c315570f71d",
+        "android_client_info": {
+          "package_name": "com.example.uniqtracking"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "115643819560-ra3828o4iu4e7ua38530792rttla2co0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.uniqtracking",
+            "certificate_hash": "a9c44d5cb5ee9a0a42b98eabbec0e8adf82acd02"
+          }
+        },
+        {
+          "client_id": "115643819560-q2vavv16j07a72mhi393pahi7godqi3u.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYn-tArPERCUJmzQ96m8WKKHDb5Qv7wHk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "115643819560-q2vavv16j07a72mhi393pahi7godqi3u.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
