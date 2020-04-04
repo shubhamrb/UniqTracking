@@ -173,7 +173,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 {
                     if (checkPlayServices()){
                         buildGoogleApiClient();
-                       // createLocationRequest();
+                        createLocationRequest();
 
                         displayLocation();
                     }
@@ -333,10 +333,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         Log.e("mMap","Called");
         mMap = googleMap;
-
-        if (passenger){
-            getLatLongFromFirebase();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
+        {
+            //Request run time permission
+            ActivityCompat.requestPermissions(this,new String[]{
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+            },MY_PERMISSION_REQUEST_CODE);
+        }else {
+            if (passenger){
+                getLatLongFromFirebase();
+            }
         }
+
     }
 
 
