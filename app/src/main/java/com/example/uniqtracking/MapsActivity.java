@@ -123,6 +123,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    @Override
+    protected void onPause() {
+        if (!passenger)
+        stopLocationUpdates();
+        super.onPause();
+    }
+
     private void getLatLongFromFirebase() {
         // Read from the database
         //Latitude
@@ -173,6 +180,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 {
                     if (checkPlayServices()){
                         buildGoogleApiClient();
+                        //if (!passenger)
                         createLocationRequest();
 
                         displayLocation();
@@ -251,7 +259,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mCurrent.remove(); // remove existing marker
 
             mCurrent=mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.car))
-                    .position(new LatLng(latitude,longitude)).title("Driver"));
+                    .position(new LatLng(latitude,longitude)).title("You"));
 
             //Move camera to this position
 
@@ -284,31 +292,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(this.latitude, this.longitude),15.0f));
 
-            //Draw animatin rotate marker
-            //rotatemarker(mCurrent,-360,mMap);
     }
 
-    private void rotatemarker(final Marker mCurrent, final float i, GoogleMap mMap) {
-        final Handler handler=new Handler();
-        final long start= SystemClock.uptimeMillis();
-        final float startRotation = mCurrent.getRotation();
-        final long duration= 1500;
-        final Interpolator interpolator=new LinearInterpolator();
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                long elapsed= SystemClock.uptimeMillis()-start;
-                float t=interpolator.getInterpolation((float) elapsed/duration);
-                float rot= t*i+(1-t)*startRotation;
-
-                mCurrent.setRotation(-rot>180?rot/2:rot);
-
-                if (t<1.0){
-                    handler.postDelayed(this,16);
-                }
-            }
-        });
-    }
 
     private void startLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED &&
@@ -354,6 +339,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         displayLocation();
+        if (!passenger)
         startLocationUpdates();
     }
 
@@ -369,13 +355,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onLocationChanged(Location location) {
-        double latitude=location.getLatitude();
-        double longitude=location.getLongitude();
-        Log.e("LAT", String.valueOf(latitude));
-        Log.e("LONG", String.valueOf(longitude));
-        mLastLocation=location;
-        drivers.child("lat").setValue(latitude);
-        drivers.child("long").setValue(longitude);
-        displayLocation();
+        if (!passenger) {
+            double latitude = location.getLatitude();
+            double longitude = location.getLongitude();
+            Log.e("LAT", String.valueOf(latitude));
+            Log.e("LONG", String.valueOf(longitude));
+            mLastLocation = location;
+            drivers.child("lat").setValue(latitude);
+            drivers.child("long").setValue(longitude);
+            displayLocation();
+        }
+
     }
 }
