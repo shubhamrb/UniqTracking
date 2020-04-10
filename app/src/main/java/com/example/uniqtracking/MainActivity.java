@@ -8,9 +8,13 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.RadioButton;
+import android.widget.Toast;
+
+import com.google.android.material.textfield.TextInputEditText;
 
 public class MainActivity extends AppCompatActivity {
 
+    private TextInputEditText txtUserName;
     private AppCompatButton btnLocate;
     private RadioButton driver, passenger;
     private boolean driverFlag=true;
@@ -19,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        txtUserName=findViewById(R.id.driverName);
         driver=findViewById(R.id.radDri);
         passenger=findViewById(R.id.radPas);
 
@@ -46,11 +51,16 @@ public class MainActivity extends AppCompatActivity {
         btnLocate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                String drivername=txtUserName.getText().toString();
                 if (driverFlag){
-                    Intent intent= new Intent(MainActivity.this, MapsActivity.class);
-                    intent.putExtra("user","driver");
-                    startActivity(intent);
+                    if (!drivername.equals("")){
+                        Intent intent= new Intent(MainActivity.this, MapsActivity.class);
+                        intent.putExtra("user","driver");
+                        intent.putExtra("name",drivername);
+                        startActivity(intent);
+                    }else {
+                        Toast.makeText(MainActivity.this,"Please enter the Driver name",Toast.LENGTH_SHORT).show();
+                    }
                 }else {
                     Intent intent= new Intent(MainActivity.this, MapsActivity.class);
                     intent.putExtra("user","passenger");

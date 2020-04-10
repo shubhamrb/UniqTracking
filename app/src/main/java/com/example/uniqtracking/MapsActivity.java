@@ -7,21 +7,16 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
-import android.view.animation.Interpolator;
-import android.view.animation.LinearInterpolator;
 import android.widget.Toast;
 
+import com.example.uniqtracking.models.Drivers;
 import com.firebase.geofire.GeoFire;
-import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -32,19 +27,22 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
@@ -74,6 +72,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean flag=false,passenger=false;
     LocationManager locationManager;
     private double latitude,longitude;
+    private String driverName;
+    private HashMap<String,Marker> hashMap=new HashMap<>();
 
 
     @Override
@@ -93,6 +93,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         geoFire=new GeoFire(drivers);
 
         if (getIntent().getStringExtra("user").equals("driver")){
+            driverName =getIntent().getStringExtra("name");
             btnSwitch.setVisibility(View.VISIBLE);
             setUpLocation();
         }else {
@@ -131,45 +132,64 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void getLatLongFromFirebase() {
-        // Read from the database
-        //Latitude
-        drivers.child("lat").addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                // This method is called once with the initial value and again
-                // whenever data at this location is updated.
-                latitude = dataSnapshot.getValue(double.class);
-                Log.d("LAT", "Value is: " + latitude);
-                //Longitude
-                drivers.child("long").addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        // This method is called once with the initial value and again
-                        // whenever data at this location is updated.
-                        longitude = dataSnapshot.getValue(double.class);
-                        Log.d("LONG", "Value is: " + longitude);
-                        displayLocationForPassenger(latitude,longitude);
-                    }
 
-                    @Override
-                    public void onCancelled(DatabaseError error) {
-                        // Failed to read value
-                        Log.w("TAG", "Failed to read value.", error.toException());
-                    }
-                });
+        ChildEventListener childEventListener=new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                if (dataSnapshot.hasChildren()){
+                    Drivers drivers=dataSnapshot.getValue(Drivers.class);
+
+                    //Log.e("NAME", drivers.getName());
+                    latitude=drivers.getLat();
+                    longitude=drivers.getLng();
+                    driverName=drivers.getName();
+                    displayLocationForPassenger(latitude,longitude,driverName);
+                }
+
             }
 
             @Override
-            public void onCancelled(DatabaseError error) {
-                // Failed to read value
-                Log.w("TAG", "Failed to read value.", error.toException());
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+                Marker marker=hashMap.get(dataSnapshot.getKey());
+                //Log.e("MARKER",marker.getTitle());
+                if (marker!=null){
+                    marker.remove();
+                    hashMap.remove(dataSnapshot.getKey());
+                    //Add updated marker
+                    Drivers drivers=dataSnapshot.getValue(Drivers.class);
+                    latitude=drivers.getLat();
+                    longitude=drivers.getLng();
+                    driverName=drivers.getName();
+                    displayLocationForPassenger(latitude,longitude,driverName);
+                }
             }
-        });
 
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                Marker marker=hashMap.get(dataSnapshot.getKey());
+                //Log.e("MARKER",marker.getTitle());
 
+                //Remove marker
+                if (marker!=null){
+                    marker.remove();
+                    hashMap.remove(dataSnapshot.getKey());
 
+                }
+            }
 
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
 
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e("ERROR","Something went wrong");
+            }
+        };
+
+        drivers.addChildEventListener(childEventListener);
     }
 
     @Override
@@ -262,18 +282,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .position(new LatLng(latitude,longitude)).title("You"));
 
             //Move camera to this position
-
-
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude,longitude),15.0f));
-
-            //Draw animatin rotate marker
-            //rotatemarker(mCurrent,-360,mMap);
 
         }else {
             Log.e("ERROR","Can not find your location");
         }
     }
-    private void displayLocationForPassenger(double latitude, double longitude) {
+    private void displayLocationForPassenger(double latitude, double longitude, String driverName) {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
         {
@@ -282,12 +297,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             //Add Marker
             if (mCurrent!=null)
-                mCurrent.remove(); // remove existing marker
+                //mCurrent.remove(); // remove existing marker
             Log.e("PAS LAT", String.valueOf(latitude));
             Log.e("PAS LONG", String.valueOf(longitude));
             mCurrent=mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.car))
-                    .position(new LatLng(latitude, longitude)).title("Driver"));
+                    .position(new LatLng(latitude, longitude)).title(driverName));
 
+            hashMap.put(mCurrent.getTitle(),mCurrent);
             //Move camera to this position
 
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(this.latitude, this.longitude),15.0f));
@@ -358,11 +374,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (!passenger) {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
+
             Log.e("LAT", String.valueOf(latitude));
             Log.e("LONG", String.valueOf(longitude));
+
             mLastLocation = location;
-            drivers.child("lat").setValue(latitude);
-            drivers.child("long").setValue(longitude);
+            drivers.child(driverName).child("lat").setValue(latitude);
+            drivers.child(driverName).child("lng").setValue(longitude);
+            drivers.child(driverName).child("name").setValue(driverName);
             displayLocation();
         }
 

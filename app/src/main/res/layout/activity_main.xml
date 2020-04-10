@@ -31,6 +31,21 @@
                 app:cardCornerRadius="5dp"
                 android:layout_margin="10dp"
                 android:padding="5dp"
+                android:backgroundTint="@android:color/white">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/driverName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Enter your name"
+                    android:text=""/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                app:cardCornerRadius="5dp"
+                android:layout_margin="10dp"
+                android:padding="5dp"
                 android:backgroundTint="@color/colorPrimary">
                 <RadioButton
                     android:id="@+id/radDri"
