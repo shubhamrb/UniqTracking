@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
                 String drivername=txtUserName.getText().toString();
                 if (driverFlag){
                     if (!drivername.equals("")){
-                        Intent intent= new Intent(MainActivity.this, MapsActivity.class);
+                        Intent intent= new Intent(MainActivity.this, MapsActivity1.class);
                         intent.putExtra("user","driver");
                         intent.putExtra("name",drivername);
                         startActivity(intent);
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this,"Please enter the Driver name",Toast.LENGTH_SHORT).show();
                     }
                 }else {
-                    Intent intent= new Intent(MainActivity.this, MapsActivity.class);
+                    Intent intent= new Intent(MainActivity.this, MapsActivity1.class);
                     intent.putExtra("user","passenger");
                     startActivity(intent);
                 }
