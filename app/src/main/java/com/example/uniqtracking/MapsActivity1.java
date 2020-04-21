@@ -72,7 +72,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
     private String driverName;
     private HashMap<String,Marker> hashMap=new HashMap<>();
 
-
+    ChildEventListener childEventListener;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,8 +88,9 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
         FirebaseApp.initializeApp(this);
         drivers= FirebaseDatabase.getInstance().getReference("Drivers");
         geoFire=new GeoFire(drivers);
-
+        Log.e("USER",getIntent().getStringExtra("user"));
         if (getIntent().getStringExtra("user").equals("driver")){
+            passenger=false;
             driverName =getIntent().getStringExtra("name");
             btnSwitch.setVisibility(View.VISIBLE);
             setUpLocation();
@@ -129,14 +130,15 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
     }
 
     private void getLatLongFromFirebase() {
-
-        ChildEventListener childEventListener=new ChildEventListener() {
+        Log.e("passenger", String.valueOf(passenger));
+        childEventListener=new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+
                 if (dataSnapshot.hasChildren()){
                     Drivers drivers=dataSnapshot.getValue(Drivers.class);
 
-                    //Log.e("NAME", drivers.getName());
+                    ////Log.e("NAME", drivers.getName());
                     latitude=drivers.getLat();
                     longitude=drivers.getLng();
                     driverName=drivers.getName();
@@ -155,7 +157,8 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
 
                 Marker marker=hashMap.get(dataSnapshot.getKey());
-                Log.e("MARKER",dataSnapshot.getKey()+" = "+marker.getTitle());
+                ////Log.e("MARKER",dataSnapshot.getKey()+" = "+marker.getTitle());
+
                 if (dataSnapshot.getKey().equals(marker.getTitle())){
                     marker.remove();
                     hashMap.remove(dataSnapshot.getKey());
@@ -169,7 +172,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
                     Location.distanceBetween(23.2472984,77.43307,latitude,longitude,result);
                     float disInMeters=result[0];
                     isWithin10Km=disInMeters<10000;
-                    Log.e("disInMeters ", String.valueOf(disInMeters));
+                    //Log.e("disInMeters ", String.valueOf(disInMeters));
 
                     displayLocationForPassenger(latitude,longitude,driverName);
 
@@ -178,7 +181,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
                 Marker marker=hashMap.get(dataSnapshot.getKey());
-                //Log.e("MARKER",marker.getTitle());
+                ////Log.e("MARKER",marker.getTitle());
 
                 //Remove marker
                 if (marker!=null){
@@ -195,11 +198,18 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                Log.e("ERROR","Something went wrong");
+                //Log.e("ERROR","Something went wrong");
             }
         };
-
         drivers.addChildEventListener(childEventListener);
+
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (passenger)
+        drivers.removeEventListener(childEventListener);
+        super.onBackPressed();
     }
 
     @Override
@@ -301,7 +311,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude,longitude),15.0f));
 
         }else {
-            Log.e("ERROR","Can not find your location");
+            ////Log.e("ERROR","Can not find your location");
         }
     }
     private void displayLocationForPassenger(double latitude, double longitude, String driverName) {
@@ -311,14 +321,8 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
             return;
         }
 
-            //Add Marker
-            if (mCurrent!=null)
-                //mCurrent.remove(); // remove existing marker
-            Log.e("PAS LAT", String.valueOf(latitude));
-            Log.e("PAS LONG", String.valueOf(longitude));
-
         if (isWithin10Km){
-            Log.e("within"," true");
+            ////Log.e("within"," true");
             mCurrent=mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.car))
                     .position(new LatLng(latitude, longitude)).title(driverName));
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude),15.0f));
@@ -352,7 +356,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Log.e("mMap","Called");
+        ////Log.e("mMap","Called");
         mMap = googleMap;
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
@@ -364,6 +368,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
             },MY_PERMISSION_REQUEST_CODE);
         }else {
             if (passenger){
+                Log.e("getLatLongFromFirebase(",") Called");
                 getLatLongFromFirebase();
             }
         }
@@ -395,8 +400,8 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
 
-            Log.e("LAT", String.valueOf(latitude));
-            Log.e("LONG", String.valueOf(longitude));
+            ////Log.e("LAT", String.valueOf(latitude));
+            ////Log.e("LONG", String.valueOf(longitude));
 
             mLastLocation = location;
             drivers.child(driverName).child("lat").setValue(latitude);
