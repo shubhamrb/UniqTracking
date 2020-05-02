@@ -48,10 +48,10 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
 
     private GoogleMap mMap;
 
-    //Play Service
+    //Play Services
     private static final int MY_PERMISSION_REQUEST_CODE=7000;
     private static final int PLAY_SERVICE_RES_REQUEST=7001;
-
+    //Location request object
     private LocationRequest mLocationReq;
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
@@ -59,6 +59,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
     private static int FASTEST_INTERVAL=1500;
     private static int DISPLACEMENT=0;
     boolean isWithin10Km=false;
+    //firebase database reference
     DatabaseReference drivers;
     GeoFire geoFire;
     Marker mCurrent;
@@ -67,12 +68,13 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
 
     AppCompatButton btnSwitch;
     boolean flag=false,passenger=false;
-    LocationManager locationManager;
     private double latitude,longitude;
     private String driverName;
+    //HashMap to store the Markers present on the Map
     private HashMap<String,Marker> hashMap=new HashMap<>();
 
     ChildEventListener childEventListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,12 +86,14 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        //Geo Fire
+
         FirebaseApp.initializeApp(this);
         drivers= FirebaseDatabase.getInstance().getReference("Drivers");
         geoFire=new GeoFire(drivers);
-        Log.e("USER",getIntent().getStringExtra("user"));
-        if (getIntent().getStringExtra("user").equals("driver")){
+        //Log.e("USER",getIntent().getStringExtra("user"));
+
+        //Check whether the user is Driver or Passenger
+        if (getIntent().getStringExtra("user").equals("driver")){ //Driver
             passenger=false;
             driverName =getIntent().getStringExtra("name");
             btnSwitch.setVisibility(View.VISIBLE);
@@ -103,15 +107,17 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
         btnSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (flag){
-                    startLocationUpdates();
-                    displayLocation();
+                if (flag){ //Toggle button between Online/Offline
+
+                    startLocationUpdates();//Start location update
+
+                    displayLocation();//Display driver's Location marker on map
                     btnSwitch.setText("OFFLINE");
                     Snackbar.make(mapFragment.getView(),"You are online",Snackbar.LENGTH_SHORT).show();
                     flag=false;
                 }else {
-                    mCurrent.remove();
-                    stopLocationUpdates();
+                    mCurrent.remove(); //Remove driver's marker
+                    stopLocationUpdates(); //Stop location update
                     btnSwitch.setText("ONLINE");
                     Snackbar.make(mapFragment.getView(),"You are offline",Snackbar.LENGTH_SHORT).show();
                     flag=true;
@@ -125,10 +131,11 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
     @Override
     protected void onPause() {
         if (!passenger)
-        stopLocationUpdates();
+        stopLocationUpdates(); // Stop location update only if user is Driver because at the time of passenger we didn't start it
         super.onPause();
     }
 
+    //Get all the driver's lat long from the Firebase to show on map for passenger.
     private void getLatLongFromFirebase() {
         Log.e("passenger", String.valueOf(passenger));
         childEventListener=new ChildEventListener() {
@@ -143,11 +150,14 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
                     longitude=drivers.getLng();
                     driverName=drivers.getName();
 
+                    //check whether the driver is within the given radius or not
+                    //if yes show it on Map
                     float[] result=new float[1];
                     Location.distanceBetween(23.2472984,77.43307,latitude,longitude,result);
                     float disInMeters=result[0];
                     isWithin10Km=disInMeters<10000;
 
+                    //Display on Map
                     displayLocationForPassenger(latitude,longitude,driverName);
                 }
 
@@ -155,25 +165,29 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
+                //This method will be called when the child in firebase will change OR you can say Driver's location gets changed
                 Marker marker=hashMap.get(dataSnapshot.getKey());
-                ////Log.e("MARKER",dataSnapshot.getKey()+" = "+marker.getTitle());
+                //Log.e("MARKER",dataSnapshot.getKey()+" = "+marker.getTitle());
 
                 if (dataSnapshot.getKey().equals(marker.getTitle())){
-                    marker.remove();
-                    hashMap.remove(dataSnapshot.getKey());
+                    marker.remove(); // remove old marker
+                    hashMap.remove(dataSnapshot.getKey()); // also remove it from HashMap
+
                 }
-                    //Add updated marker
+                    //Get updated location (LAT/LNG)
                     Drivers drivers=dataSnapshot.getValue(Drivers.class);
                     latitude=drivers.getLat();
                     longitude=drivers.getLng();
                     driverName=drivers.getName();
+
+                    //Again check if it is within the given radius or not
                     float[] result=new float[1];
                     Location.distanceBetween(23.2472984,77.43307,latitude,longitude,result);
                     float disInMeters=result[0];
                     isWithin10Km=disInMeters<10000;
                     //Log.e("disInMeters ", String.valueOf(disInMeters));
 
+                //Display it on Map
                     displayLocationForPassenger(latitude,longitude,driverName);
 
             }
@@ -183,11 +197,11 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
                 Marker marker=hashMap.get(dataSnapshot.getKey());
                 ////Log.e("MARKER",marker.getTitle());
 
-                //Remove marker
+                //Remove marker when child/Driver gets deleted from database
                 if (marker!=null){
+                    //Also remove from Google Map and HashMap
                     marker.remove();
                     hashMap.remove(dataSnapshot.getKey());
-
                 }
             }
 
@@ -208,7 +222,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
     @Override
     public void onBackPressed() {
         if (passenger)
-        drivers.removeEventListener(childEventListener);
+        drivers.removeEventListener(childEventListener);// Stop location update
         super.onBackPressed();
     }
 
@@ -281,27 +295,27 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
     }
 
 
-
+    //Display location for Driver
     private void displayLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
         {
             return;
         }
-
+        //Get the Last known location
         mLastLocation=LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (mLastLocation!=null){
             double latitude=mLastLocation.getLatitude();
             double longitude=mLastLocation.getLongitude();
 
-            //Add Marker
             if (mCurrent!=null)
                 mCurrent.remove(); // remove existing marker
 
-            if (!passenger){
+            if (!passenger){// Driver's marker as Car icon
                 mCurrent=mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.car))
                         .position(new LatLng(latitude,longitude)).title("You"));
             }else {
+                //passenger's default marker icon
                 mCurrent=mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.pas_location))
                         .position(new LatLng(latitude,longitude)).title("You"));
             }
@@ -311,9 +325,12 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude,longitude),15.0f));
 
         }else {
-            ////Log.e("ERROR","Can not find your location");
+            //Log.e("ERROR","Can not find your location");
         }
     }
+
+
+    //Display location for passenger
     private void displayLocationForPassenger(double latitude, double longitude, String driverName) {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
@@ -321,8 +338,9 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
             return;
         }
 
+        //Show marker only if the driver is present within the 100m radius
         if (isWithin10Km){
-            ////Log.e("within"," true");
+            //Log.e("within"," true");
             mCurrent=mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.car))
                     .position(new LatLng(latitude, longitude)).title(driverName));
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude),15.0f));
@@ -334,7 +352,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
 
     }
 
-
+    //Start location update
     private void startLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
@@ -344,6 +362,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient,mLocationReq,this);
     }
 
+    //Stop location update
     private void stopLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
@@ -356,7 +375,7 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        ////Log.e("mMap","Called");
+        //Log.e("mMap","Called");
         mMap = googleMap;
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
@@ -367,6 +386,9 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
                     Manifest.permission.ACCESS_FINE_LOCATION
             },MY_PERMISSION_REQUEST_CODE);
         }else {
+
+            //Map is ready and location permission is given
+            //Now get the driver's Lat long from the firebase only if the user is a passenger
             if (passenger){
                 Log.e("getLatLongFromFirebase(",") Called");
                 getLatLongFromFirebase();
@@ -407,6 +429,8 @@ public class MapsActivity1 extends FragmentActivity implements OnMapReadyCallbac
             drivers.child(driverName).child("lat").setValue(latitude);
             drivers.child(driverName).child("lng").setValue(longitude);
             drivers.child(driverName).child("name").setValue(driverName);
+
+            // each time location changes update the marker
             displayLocation();
         }
 
